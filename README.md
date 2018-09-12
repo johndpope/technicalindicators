@@ -2,7 +2,7 @@
 
 # TechnicalIndicators
 
-A javascript technical indicators written in javascript. 
+A javascript technical indicators written in javascript.
 
 
 # Installation
@@ -63,40 +63,86 @@ All indicators will be available in window object. So you can just use
 sma({period : 5, values : [1,2,3,4,5,6,7,8,9], reversedInput : true});
 ```
 
-or 
+or
 
 ``` javascript
 SMA.calculate({period : 5, values : [1,2,3,4,5,6,7,8,9]});
 ```
 
-
 # Playground
-  
+
 [Playground with code completion](http://anandanand84.github.io/technicalindicators/ "Playground")
 
+# Crypto Trading hub
+
+If you like this project. You'll love my other project [crypto trading hub](https://cryptotrading-hub.com/?utm_source=github&utm_medium=readme&utm_campaign=technicalindicators "Crypto trading hub")
+
+1. Its free
+1. Realtime price charts 
+1. Unified trading experience across exchanges
+1. Price alerts
+1. Realtime crypto screening using javascript (Find coins making high and low in realtime or anything you can write using this library and javascript in realtime)
+1. Trading from charts, 
+1. Modify orders and ability to trade and create studies using javascript.
+
+![Home](/images/home.png)
+![Screener](/images/screener.png)
+![Trade](/images/trade.png)
 
 # Available Indicators
 
+1. [Accumulation Distribution Line (ADL)](https://tonicdev.com/anandaravindan/adl "ADL").
+1. [Average Directional Index (ADX)](https://github.com/anandanand84/technicalindicators/blob/master/test/directionalmovement/ADX.js "ADX").
+1. [Average True Range (ATR)](https://tonicdev.com/anandaravindan/atr "ATR").
+1. [Awesome Oscillator (AO)](https://github.com/anandanand84/technicalindicators/blob/master/test/oscillators/AwesomeOscillator.js "AO").
+1. [Bollinger Bands (BB)](https://tonicdev.com/anandaravindan/bb "BB").
+1. [Commodity Channel Index (CCI)](https://github.com/anandanand84/technicalindicators/blob/master/test/oscillators/CCI.js "CCI").
+1. [Force Index (FI)](https://github.com/anandanand84/technicalindicators/blob/master/test/volume/ForceIndex.js "FI").
+1. [Know Sure Thing (KST)](https://tonicdev.com/anandaravindan/kst "KST").
+1. [Moneyflow Index (MFI)](https://github.com/anandanand84/technicalindicators/blob/master/test/volume/MFI.js "MFI").
+1. [Moving Average Convergence Divergence (MACD)](https://tonicdev.com/anandaravindan/macd "MACD").
+1. [On Balance Volume (OBV)](https://tonicdev.com/anandaravindan/obv "OBV").
+1. [Parabolic Stop and Reverse (PSAR)](https://github.com/anandanand84/technicalindicators/blob/master/test/momentum/PSAR.js "PSAR").
+1. [Rate of Change (ROC)](https://tonicdev.com/anandaravindan/roc "ROC").
+1. [Relative Strength Index (RSI)](https://tonicdev.com/anandaravindan/rsi "RSI").
 1. [Simple Moving Average (SMA)](https://tonicdev.com/anandaravindan/sma "SMA").
+1. [Stochastic Oscillator (KD)](https://tonicdev.com/anandaravindan/stochastic "KD").
+1. [Stochastic RSI (StochRSI)](https://tonicdev.com/anandaravindan/stochasticrsi "StochRSI").
+1. [Triple Exponentially Smoothed Average (TRIX)](https://tonicdev.com/anandaravindan/trix "TRIX").
+1. [Typical Price](https://github.com/anandanand84/technicalindicators/blob/master/test/chart_types/TypicalPrice.js "Typical Price").
+1. [Volume Weighted Average Price (VWAP)](https://github.com/anandanand84/technicalindicators/blob/master/test/volume/VWAP.js "VWAP").
+1. [Volume Profile (VP)](https://github.com/anandanand84/technicalindicators/blob/master/test/volume/VolumeProfile.js "VP").
 1. [Exponential Moving Average (EMA)](https://tonicdev.com/anandaravindan/ema "EMA").
 1. [Weighted Moving Average (WMA)](https://tonicdev.com/anandaravindan/wma "WMA").
-1. [Moving Average Convergence Divergence (MACD)](https://tonicdev.com/anandaravindan/macd "MACD").
-1. [Bollinger Bands (BB)](https://tonicdev.com/anandaravindan/bb "BB").
-1. [Average True Range (ATR)](https://tonicdev.com/anandaravindan/atr "ATR").
-1. [Relative Strength Index (RSI)](https://tonicdev.com/anandaravindan/rsi "RSI").
 1. [Wilder’s Smoothing (Smoothed Moving Average, WEMA)](https://tonicdev.com/anandaravindan/wema "WEMA").
-1. [Rate of Change (ROC)](https://tonicdev.com/anandaravindan/roc "ROC").
-1. [Know Sure Thing (KST)](https://tonicdev.com/anandaravindan/kst "KST").
-1. [Stochastic Oscillator (KD)](https://tonicdev.com/anandaravindan/stochastic "KD").
 1. [WilliamsR (W%R)](https://tonicdev.com/anandaravindan/williamsr "W%R").
-1. [Accumulation Distribution Line (ADL)](https://tonicdev.com/anandaravindan/adl "ADL").
-1. [On Balance Volume (OBV)](https://tonicdev.com/anandaravindan/obv "OBV").
-1. [Triple Exponentially Smoothed Average (TRIX)](https://tonicdev.com/anandaravindan/trix "TRIX").
-1. [Average Directional Index (ADX)](https://github.com/anandanand84/technicalindicators/blob/master/test/directionalmovement/ADX.js "ADX").
-1. [Commodity Channel Index (CCI)](https://github.com/anandanand84/technicalindicators/blob/master/test/oscillators/CCI.js "CCI").
-1. [Volume Weighted Average Price (VWAP)](https://github.com/anandanand84/technicalindicators/blob/master/test/volume/VWAP.js "VWAP").
-1. [Force Index (FI)](https://github.com/anandanand84/technicalindicators/blob/master/test/volume/ForceIndex.js "VWAP").
 
+# Other Utils
+
+1. [Average Gain](https://github.com/anandanand84/technicalindicators/blob/master/test/Utils/AverageGain.js "")
+1. [Average Loss](https://github.com/anandanand84/technicalindicators/blob/master/test/Utils/AverageLoss.js "")
+1. [Highest](https://github.com/anandanand84/technicalindicators/blob/master/test/Utils/Highest.js "")
+1. [Lowest](https://github.com/anandanand84/technicalindicators/blob/master/test/Utils/Lowest.js "")
+1. [Standard Deviation](https://github.com/anandanand84/technicalindicators/blob/master/test/Utils/SD.js "")
+1. [Sum](https://github.com/anandanand84/technicalindicators/blob/master/test/Utils/Sum.js "")
+
+# Pattern Detection
+
+1. [Pattern Detection](https://tonicdev.com/anandaravindan/patterns "Pattern Detection")
+
+Finds pattern in the given set of data, patterns include, DB, DT, HS, IHS, TU, TD
+
+
+```
+  const hasHeadAndShoulder = require('technicalindicators').hasHeadAndShoulder;
+  hasHeadAndShoulder({values : closes})
+  isTrendingUp({values : closes})
+```
+
+
+When running in browser the file model.bin present in dist/model.bin in the respository should be accessible on your server at the location at /dist/model.bin.
+The model is trained using 400 count of values, so try to provide values close to 400  for a reliable prediction of DB, DT, HS, IHS
+TD(Trending Down) and TU(Trending up) works fine even with lower values.
 
 # Chart Types
 
@@ -106,7 +152,7 @@ SMA.calculate({period : 5, values : [1,2,3,4,5,6,7,8,9]});
 
 # CandleStick Pattern
 
-1. [Abandoned Baby](https://runkit.com/aarthiaradhana/abandonedbaby).
+1. [Abandoned Baby](https://runkit.com/anandaravindan/abandoned-baby).
 1. [Bearish Engulfing Pattern](https://runkit.com/aarthiaradhana/bearishengulfingpattern).
 1. [Bullish Engulfiing Pattern](https://runkit.com/aarthiaradhana/bullishengulfingpattern).
 1. [Dark Cloud Cover](https://runkit.com/aarthiaradhana/darkcloudcover).
@@ -129,8 +175,20 @@ SMA.calculate({period : 5, values : [1,2,3,4,5,6,7,8,9]});
 1. [Morning Star](https://runkit.com/aarthiaradhana/morningstar).
 1. [Three Black Crows](https://runkit.com/aarthiaradhana/threeblackcrows).
 1. [Three White Soldiers](https://runkit.com/aarthiaradhana/threewhitesoldiers).
+1. [Bullish Hammer](https://runkit.com/nerdacus/technicalindicator-bullishhammer).
+1. [Bearish Hammer](https://runkit.com/nerdacus/technicalindicator-bearishhammer).
+1. [Bullish Inverted Hammer](https://runkit.com/nerdacus/technicalindicator-bullishinvertedhammer).
+1. [Bearish Inverted Hammer](https://runkit.com/nerdacus/technicalindicator-bearishinvertedhammer).
+1. [Hammer Pattern](https://runkit.com/nerdacus/technicalindicator-hammerpattern).
+1. [Hammer Pattern (Unconfirmed)](https://runkit.com/nerdacus/technicalindicator-hammerpatternunconfirmed).
+1. [Hanging Man](https://runkit.com/nerdacus/technicalindicator-hangingman).
+1. [Hanging Man (Unconfirmed)](https://runkit.com/nerdacus/technicalindicator-hangingmanunconfirmed).
+1. [Shooting Star](https://runkit.com/nerdacus/technicalindicator-shootingstar).
+1. [Shooting Star (Unconfirmed)](https://runkit.com/nerdacus/technicalindicator-shootingstarunconfirmed).
+1. [Tweezer Top](https://runkit.com/nerdacus/technicalindicator-tweezertop).
+1. [Tweezer Bottom](https://runkit.com/nerdacus/technicalindicator-tweezerbottom).
 
-or 
+or
 
 Search for all bullish or bearish using
 
@@ -153,7 +211,7 @@ bullish(twoDayBullishInput) //true
 
 There are three ways you can use to get the indicator results.
 
-## calculate 
+## calculate
 
 Every indicator has a static method `calculate` which can be used to calculate the indicator without creating an object.
 
@@ -164,7 +222,7 @@ var period = 10;
 sma({period : period, values : prices})
 ```
 
-or 
+or
 
 ``` javascript
 const SMA = require('technicalindicators').SMA;
@@ -193,7 +251,7 @@ This a merge of calculate and nextValue. The usual use case would be
 
 1. Initialize indicator with available price value
 
-1. Get results for initialized values 
+1. Get results for initialized values
 
 1. Use nextValue to get next indicator values for further tick.
 
@@ -203,12 +261,12 @@ This a merge of calculate and nextValue. The usual use case would be
     sma.nextValue(16); // 10.1
     ```
 
-    Note: Calling nextValue will not update getResult() value. 
+    Note: Calling nextValue will not update getResult() value.
 
 ### Precision
 
 This uses regular javascript numbers, so there can be rounding errors which are negligible for a technical indicators, you can set precision by using the below config. By default there is no precision set.
-  
+
   ``` javascript
   const technicalIndicators = require('technicalindicators');
   technicalIndicators.setConfig('precision', 10);
@@ -220,6 +278,10 @@ This uses regular javascript numbers, so there can be rounding errors which are 
 Create issues about anything you want to report, change of API's, or request for adding new indicators. You can also create pull request with new indicators.
 
 ## Environment dependencies
+
+Typescript: Use typescript 2.0.0 other you might get max call stack reached error.
+
+``` npm install -g typescript@2.0.0 ```
 
 TechnicalIndicators depends on the [`canvas` package](https://npmjs.com/canvas), which requires some dependencies to be installed. You can find the instructions to do that [here](https://github.com/Automattic/node-canvas#installation). If you do not install these dependencies, expect to get this error message during the installation of TechnicalIndicators:
 
@@ -236,8 +298,7 @@ gyp: Call to './util/has_lib.sh freetype' returned exit status 0 while in bindin
 ``` bash
 git clone git@github.com:anandanand84/technicalindicators.git  # or use your fork
 cd technicalindicators
-npm install
-gulp watch-test
+npm run start
 ```
 
 ## Running tests and getting coverage
@@ -247,14 +308,15 @@ npm test
 npm run cover
 ```
 
-## Adding new indicators.
+## Adding new indicators
 
-1. Add tests for the indicator. Make it pass. It would be better if a sample of the stockcharts excel is used for the test case.
-1. Add the indicator to the index.js
-1. Run `npm run build` so it adds the indicator to the browser.js
-1. Add it to read me, with the link to the tonicdev url containing the sample.
-1. Add indicator it to keywords in package.json and bower.json
-1. Send a pull request.
+1. Add tests for the indicator and make them pass.  
+   (It would be better if a sample of the stockcharts excel is used for the test case.)
+1. Add the indicator to the `index.js` and `src/index.ts`
+1. Run build scripts: `npm run build-lib && npm run generateDts && npm run start`
+1. Add it to `README.md`, with the link to the runkit url containing the sample.
+1. Add indicator it to keywords in `package.json` and `bower.json`
+1. Send a Pull Request.
 
 
 ## Verify Documentation
@@ -266,7 +328,8 @@ open "http://localhost:5444/testdocs.html"
 
 
 # Donate
-
-BTC: `12eGmnhPrGuqvLNVnPddTaXm74hX68auTV`
-
-
+1. XRB: `xrb_1shh8i77upiq4bjzi3ajik9ofq14bbcucshoapi3m7f8d74dc5k31o56yj5r`
+1. ETH: `0x0B56580Eb25f3F7e366dDA697161d314C17Bcb6a`
+1. LTC: `LLTUhKBRKs9sbW9F8MFQm7VVdZ1dJnXzGc`
+1. BTC: `1FGeJHoj7tjeLrm4JNtyPWTdBKPJjcqP6Y`
+1. BCH: `1AUFc8CEfHVjnoixbqTbX62WV8DZkpC1DU`

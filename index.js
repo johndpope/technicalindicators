@@ -13,20 +13,30 @@ export function getAvailableIndicators () {
   AvailableIndicators.push('truerange');
   AvailableIndicators.push('roc');
   AvailableIndicators.push('kst');
+  AvailableIndicators.push('psar');
   AvailableIndicators.push('stochastic');
   AvailableIndicators.push('williamsr');
   AvailableIndicators.push('adl');
   AvailableIndicators.push('obv');
   AvailableIndicators.push('trix');
-  
+
   AvailableIndicators.push('cci');
+  AvailableIndicators.push('awesomeoscillator');
   AvailableIndicators.push('forceindex');
   AvailableIndicators.push('vwap');
+  AvailableIndicators.push('volumeprofile');
   AvailableIndicators.push('renko');
   AvailableIndicators.push('heikinashi');
 
+  AvailableIndicators.push('stochasticrsi');
+  AvailableIndicators.push('mfi');
+
   AvailableIndicators.push('averagegain');
   AvailableIndicators.push('averageloss');
+  AvailableIndicators.push('highest');
+  AvailableIndicators.push('lowest');
+  AvailableIndicators.push('sum');
+  AvailableIndicators.push('FixedSizeLinkedList');
   AvailableIndicators.push('sd');
   AvailableIndicators.push('bullish');
   AvailableIndicators.push('bearish');
@@ -53,5 +63,28 @@ export function getAvailableIndicators () {
   AvailableIndicators.push('bearishspinningtop');
   AvailableIndicators.push('threeblackcrows');
   AvailableIndicators.push('threewhitesoldiers');
+  AvailableIndicators.push('bullishhammerstick');
+  AvailableIndicators.push('bearishhammerstick');
+  AvailableIndicators.push('bullishinvertedhammerstick');
+  AvailableIndicators.push('bearishinvertedhammerstick');
+  AvailableIndicators.push('hammerpattern');
+  AvailableIndicators.push('hammerpatternunconfirmed');
+  AvailableIndicators.push('hangingman');
+  AvailableIndicators.push('hangingmanunconfirmed');
+  AvailableIndicators.push('shootingstar');
+  AvailableIndicators.push('shootingstarunconfirmed');
+  AvailableIndicators.push('tweezertop');
+  AvailableIndicators.push('tweezerbottom');
+
+  AvailableIndicators.push('predictPattern');
+  AvailableIndicators.push('hasDoubleBottom');
+  AvailableIndicators.push('hasDoubleTop');
+  AvailableIndicators.push('hasHeadAndShoulder');
+  AvailableIndicators.push('hasInverseHeadAndShoulder');
+  AvailableIndicators.push('isTrendingUp');
+  AvailableIndicators.push('isTrendingDown');
   return AvailableIndicators;
 };
+
+let AvailableIndicators = getAvailableIndicators();
+export { AvailableIndicators }

@@ -3,44 +3,9 @@
 
 Object.defineProperty(exports, '__esModule', { value: true });
 
-let config = {};
-function setConfig(key, value) {
-    config[key] = value;
-}
-function getConfig(key) {
-    return config[key];
-}
+function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
 
-function format(v) {
-    let precision = getConfig('precision');
-    if (precision) {
-        return parseFloat(v.toPrecision(precision));
-    }
-    return v;
-}
-
-class IndicatorInput {
-}
-
-class Indicator {
-    constructor(input) {
-        this.format = input.format || format;
-    }
-    static reverseInputs(input) {
-        if (input.reversedInput) {
-            input.values ? input.values.reverse() : undefined;
-            input.open ? input.open.reverse() : undefined;
-            input.high ? input.high.reverse() : undefined;
-            input.low ? input.low.reverse() : undefined;
-            input.close ? input.close.reverse() : undefined;
-            input.volume ? input.volume.reverse() : undefined;
-            input.timestamp ? input.timestamp.reverse() : undefined;
-        }
-    }
-    getResult() {
-        return this.result;
-    }
-}
+var KerasJS = _interopDefault(require('keras-js'));
 
 class Item {
     constructor(data, prev, next) {
@@ -187,6 +152,142 @@ class LinkedList {
     }
 }
 
+/**
+ * Created by AAravindan on 5/7/16.
+ */
+class FixedSizeLinkedList extends LinkedList {
+    constructor(size, maintainHigh, maintainLow, maintainSum) {
+        super();
+        this.size = size;
+        this.maintainHigh = maintainHigh;
+        this.maintainLow = maintainLow;
+        this.maintainSum = maintainSum;
+        this.totalPushed = 0;
+        this.periodHigh = 0;
+        this.periodLow = Infinity;
+        this.periodSum = 0;
+        if (!size || typeof size !== 'number') {
+            throw ('Size required and should be a number.');
+        }
+        this._push = this.push;
+        this.push = function (data) {
+            this.add(data);
+            this.totalPushed++;
+        };
+    }
+    add(data) {
+        if (this.length === this.size) {
+            this.lastShift = this.shift();
+            this._push(data);
+            //TODO: FInd a better way
+            if (this.maintainHigh)
+                if (this.lastShift == this.periodHigh)
+                    this.calculatePeriodHigh();
+            if (this.maintainLow)
+                if (this.lastShift == this.periodLow)
+                    this.calculatePeriodLow();
+            if (this.maintainSum) {
+                this.periodSum = this.periodSum - this.lastShift;
+            }
+        }
+        else {
+            this._push(data);
+        }
+        //TODO: FInd a better way
+        if (this.maintainHigh)
+            if (this.periodHigh <= data)
+                (this.periodHigh = data);
+        if (this.maintainLow)
+            if (this.periodLow >= data)
+                (this.periodLow = data);
+        if (this.maintainSum) {
+            this.periodSum = this.periodSum + data;
+        }
+    }
+    *iterator() {
+        this.resetCursor();
+        while (this.next()) {
+            yield this.current;
+        }
+    }
+    calculatePeriodHigh() {
+        this.resetCursor();
+        if (this.next())
+            this.periodHigh = this.current;
+        while (this.next()) {
+            if (this.periodHigh <= this.current) {
+                this.periodHigh = this.current;
+            }
+            
+        }
+        
+    }
+    calculatePeriodLow() {
+        this.resetCursor();
+        if (this.next())
+            this.periodLow = this.current;
+        while (this.next()) {
+            if (this.periodLow >= this.current) {
+                this.periodLow = this.current;
+            }
+            
+        }
+        
+    }
+}
+
+class CandleData {
+}
+class CandleList {
+    constructor() {
+        this.open = [];
+        this.high = [];
+        this.low = [];
+        this.close = [];
+        this.volume = [];
+        this.timestamp = [];
+    }
+}
+
+let config = {};
+function setConfig(key, value) {
+    config[key] = value;
+}
+function getConfig(key) {
+    return config[key];
+}
+
+function format(v) {
+    let precision = getConfig('precision');
+    if (precision) {
+        return parseFloat(v.toPrecision(precision));
+    }
+    return v;
+}
+
+class IndicatorInput {
+}
+
+class Indicator {
+    constructor(input) {
+        this.format = input.format || format;
+    }
+    static reverseInputs(input) {
+        if (input.reversedInput) {
+            input.values ? input.values.reverse() : undefined;
+            input.open ? input.open.reverse() : undefined;
+            input.high ? input.high.reverse() : undefined;
+            input.low ? input.low.reverse() : undefined;
+            input.close ? input.close.reverse() : undefined;
+            input.volume ? input.volume.reverse() : undefined;
+            input.timestamp ? input.timestamp.reverse() : undefined;
+        }
+    }
+    getResult() {
+        return this.result;
+    }
+}
+
 //STEP 1. Import Necessary indicator or rather last step
 //STEP 2. Create the input for the indicator, mandatory should be in the constructor
 
@@ -260,7 +361,7 @@ class EMA extends Indicator {
             var tick = yield;
             var prevEma;
             while (true) {
-                if (prevEma && tick) {
+                if (prevEma !== undefined && tick !== undefined) {
                     prevEma = ((tick - prevEma) * exponent) + prevEma;
                     tick = yield prevEma;
                 }
@@ -366,14 +467,14 @@ class WEMA extends Indicator {
             var tick = yield;
             var prevEma;
             while (true) {
-                if (prevEma && tick != undefined) {
+                if (prevEma !== undefined && tick !== undefined) {
                     prevEma = ((tick - prevEma) * exponent) + prevEma;
                     tick = yield prevEma;
                 }
                 else {
                     tick = yield;
                     prevEma = sma$$1.nextValue(tick);
-                    if (prevEma)
+                    if (prevEma !== undefined)
                         tick = yield prevEma;
                 }
             }
@@ -486,24 +587,25 @@ class AverageGain extends Indicator {
             var gainSum = 0;
             var avgGain;
             var gain;
-            var lastValue;
+            var lastValue = currentValue;
+            currentValue = yield;
             while (true) {
-                gain = lastValue ? (currentValue - lastValue) : 0;
-                gain = gain ? gain : 0;
+                gain = currentValue - lastValue;
+                gain = gain > 0 ? gain : 0;
                 if (gain > 0) {
                     gainSum = gainSum + gain;
                 }
-                if (counter < (period + 1)) {
+                if (counter < period) {
                     counter++;
                 }
-                else if (!avgGain) {
+                else if (avgGain === undefined) {
                     avgGain = gainSum / period;
                 }
                 else {
-                    avgGain = ((avgGain * (period - 1)) + (gain > 0 ? gain : 0)) / period;
+                    avgGain = ((avgGain * (period - 1)) + gain) / period;
                 }
                 lastValue = currentValue;
-                avgGain = avgGain ? format(avgGain) : undefined;
+                avgGain = (avgGain !== undefined) ? format(avgGain) : undefined;
                 currentValue = yield avgGain;
             }
         })(period);
@@ -544,24 +646,25 @@ class AverageLoss extends Indicator {
             var lossSum = 0;
             var avgLoss;
             var loss;
-            var lastValue;
+            var lastValue = currentValue;
+            currentValue = yield;
             while (true) {
-                loss = lastValue ? (lastValue - currentValue) : 0;
-                loss = loss ? loss : 0;
+                loss = lastValue - currentValue;
+                loss = loss > 0 ? loss : 0;
                 if (loss > 0) {
                     lossSum = lossSum + loss;
                 }
-                if (counter < (period + 1)) {
+                if (counter < period) {
                     counter++;
                 }
-                else if (!avgLoss) {
+                else if (avgLoss === undefined) {
                     avgLoss = lossSum / period;
                 }
                 else {
-                    avgLoss = ((avgLoss * (period - 1)) + (loss > 0 ? loss : 0)) / period;
+                    avgLoss = ((avgLoss * (period - 1)) + loss) / period;
                 }
                 lastValue = currentValue;
-                avgLoss = avgLoss ? format(avgLoss) : undefined;
+                avgLoss = (avgLoss !== undefined) ? format(avgLoss) : undefined;
                 currentValue = yield avgLoss;
             }
         })(period);
@@ -601,21 +704,27 @@ class RSI extends Indicator {
         var values = input.values;
         var GainProvider = new AverageGain({ period: period, values: [] });
         var LossProvider = new AverageLoss({ period: period, values: [] });
+        let count = 1;
         this.generator = (function* (period) {
             var current = yield;
             var lastAvgGain, lastAvgLoss, RS, currentRSI;
             while (true) {
                 lastAvgGain = GainProvider.nextValue(current);
                 lastAvgLoss = LossProvider.nextValue(current);
-                if (lastAvgGain && lastAvgLoss) {
+                if ((lastAvgGain !== undefined) && (lastAvgLoss !== undefined)) {
                     if (lastAvgLoss === 0) {
                         currentRSI = 100;
                     }
+                    else if (lastAvgGain === 0) {
+                        currentRSI = 0;
+                    }
                     else {
                         RS = lastAvgGain / lastAvgLoss;
+                        RS = isNaN(RS) ? 0 : RS;
                         currentRSI = parseFloat((100 - (100 / (1 + RS))).toFixed(2));
                     }
                 }
+                count++;
                 current = yield currentRSI;
             }
         })(period);
@@ -643,80 +752,6 @@ function rsi(input) {
     }
     Indicator.reverseInputs(input);
     return result;
-}
-
-/**
- * Created by AAravindan on 5/7/16.
- */
-class FixedSizeLinkedList extends LinkedList {
-    constructor(size, maintainHigh, maintainLow) {
-        super();
-        this.size = size;
-        this.maintainHigh = maintainHigh;
-        this.maintainLow = maintainLow;
-        this.periodHigh = 0;
-        this.periodLow = Infinity;
-        if (!size || typeof size !== 'number') {
-            throw ('Size required and should be a number.');
-        }
-        this._push = this.push;
-        this.push = function (data) {
-            this.add(data);
-        };
-    }
-    add(data) {
-        if (this.length === this.size) {
-            this.lastShift = this.shift();
-            this._push(data);
-            //TODO: FInd a better way
-            if (this.maintainHigh)
-                if (this.lastShift == this.periodHigh)
-                    this.calculatePeriodHigh();
-            if (this.maintainLow)
-                if (this.lastShift == this.periodLow)
-                    this.calculatePeriodLow();
-        }
-        else {
-            this._push(data);
-        }
-        //TODO: FInd a better way
-        if (this.maintainHigh)
-            if (this.periodHigh <= data)
-                (this.periodHigh = data);
-        if (this.maintainLow)
-            if (this.periodLow >= data)
-                (this.periodLow = data);
-    }
-    *iterator() {
-        this.resetCursor();
-        while (this.next()) {
-            yield this.current;
-        }
-    }
-    calculatePeriodHigh() {
-        this.resetCursor();
-        if (this.next())
-            this.periodHigh = this.current;
-        while (this.next()) {
-            if (this.periodHigh <= this.current) {
-                this.periodHigh = this.current;
-            }
-            
-        }
-        
-    }
-    calculatePeriodLow() {
-        this.resetCursor();
-        if (this.next())
-            this.periodLow = this.current;
-        while (this.next()) {
-            if (this.periodLow >= this.current) {
-                this.periodLow = this.current;
-            }
-            
-        }
-        
-    }
 }
 
 class SD extends Indicator {
@@ -842,11 +877,12 @@ class WilderSmoothing extends Indicator {
             var sum = 0;
             var counter = 1;
             var current = yield;
-            var result;
+            var result = 0;
             while (true) {
                 if (counter < period) {
                     counter++;
                     sum = sum + current;
+                    result = undefined;
                 }
                 else if (counter == period) {
                     counter++;
@@ -1345,6 +1381,117 @@ function kst(input) {
     return result;
 }
 
+/*
+  There seems to be a few interpretations of the rules for this regarding which prices.
+  I mean the english from which periods are included. The wording does seem to
+  introduce some discrepancy so maybe that is why. I want to put the author's
+  own description here to reassess this later.
+  ----------------------------------------------------------------------------------------
+  For the first day of entry the SAR is the previous Significant Point
+
+  If long the SP is the lowest price reached while in the previous short trade
+  If short the SP is the highest price reached while in the previous long trade
+
+  If long:
+  Find the difference between the highest price made while in the trade and the SAR for today.
+  Multiple the difference by the AF and ADD the result to today's SAR to obtain the SAR for tomorrow.
+  Use 0.02 for the first AF and increase it by 0.02 on every day that a new high for the trade is made.
+  If a new high is not made continue to use the AF as last increased. Do not increase the AF above .20
+
+  Never move the SAR for tomorrow ABOVE the previous day's LOW or today's LOW.
+  If the SAR is calculated to be ABOVE the previous day's LOW or today's LOW then use the lower low between today and the previous day as the new SAR.
+  Make the next day's calculations based on this SAR.
+
+  If short:
+  Find the difference between the lowest price made while in the trade and the SAR for today.
+  Multiple the difference by the AF and SUBTRACT the result to today's SAR to obtain the SAR for tomorrow.
+  Use 0.02 for the first AF and increase it by 0.02 on every day that a new high for the trade is made.
+  If a new high is not made continue to use the AF as last increased. Do not increase the AF above .20
+
+  Never move the SAR for tomorrow BELOW the previous day's HIGH or today's HIGH.
+  If the SAR is calculated to be BELOW the previous day's HIGH or today's HIGH then use the higher high between today and the previous day as the new SAR. Make the next day's calculations based on this SAR.
+  ----------------------------------------------------------------------------------------
+*/
+
+
+class PSAR extends Indicator {
+    constructor(input) {
+        super(input);
+        let highs = input.high || [];
+        let lows = input.low || [];
+        var genFn = function* (step, max) {
+            let curr, extreme, sar, furthest;
+            let up = true;
+            let accel = step;
+            let prev = yield;
+            while (true) {
+                if (curr) {
+                    sar = sar + accel * (extreme - sar);
+                    if (up) {
+                        sar = Math.min(sar, furthest.low, prev.low);
+                        if (curr.high > extreme) {
+                            extreme = curr.high;
+                            accel = Math.min(accel + step, max);
+                        }
+                        
+                    }
+                    else {
+                        sar = Math.max(sar, furthest.high, prev.high);
+                        if (curr.low < extreme) {
+                            extreme = curr.low;
+                            accel = Math.min(accel + step, max);
+                        }
+                    }
+                    if ((up && curr.low < sar) || (!up && curr.high > sar)) {
+                        accel = step;
+                        sar = extreme;
+                        up = !up;
+                        extreme = !up ? curr.low : curr.high;
+                    }
+                }
+                else {
+                    // Randomly setup start values? What is the trend on first tick??
+                    sar = prev.low;
+                    extreme = prev.high;
+                }
+                furthest = prev;
+                if (curr)
+                    prev = curr;
+                curr = yield sar;
+            }
+        };
+        this.result = [];
+        this.generator = genFn(input.step, input.max);
+        this.generator.next();
+        lows.forEach((tick, index) => {
+            var result = this.generator.next({
+                high: highs[index],
+                low: lows[index],
+            });
+            if (result.value !== undefined) {
+                this.result.push(result.value);
+            }
+        });
+    }
+    ;
+    nextValue(input) {
+        let nextResult = this.generator.next(input);
+        if (nextResult.value !== undefined)
+            return nextResult.value;
+    }
+    ;
+}
+PSAR.calculate = psar;
+function psar(input) {
+    Indicator.reverseInputs(input);
+    var result = new PSAR(input).result;
+    if (input.reversedInput) {
+        result.reverse();
+    }
+    Indicator.reverseInputs(input);
+    return result;
+}
+
 class Stochastic extends Indicator {
     constructor(input) {
         super(input);
@@ -1385,10 +1532,11 @@ class Stochastic extends Indicator {
                 }
                 let periodLow = pastLowPeriods.periodLow;
                 k = (tick.close - periodLow) / (pastHighPeriods.periodHigh - periodLow) * 100;
+                k = isNaN(k) ? 0 : k; //This happens when the close, high and low are same for the entire period; Bug fix for 
                 d = dSma.nextValue(k);
                 tick = yield {
                     k: format(k),
-                    d: d ? format(d) : undefined
+                    d: (d !== undefined) ? format(d) : undefined
                 };
             }
         })();
@@ -1513,6 +1661,7 @@ class ADL extends Indicator {
             tick = yield;
             while (true) {
                 let moneyFlowMultiplier = ((tick.close - tick.low) - (tick.high - tick.close)) / (tick.high - tick.low);
+                moneyFlowMultiplier = isNaN(moneyFlowMultiplier) ? 1 : moneyFlowMultiplier;
                 let moneyFlowVolume = moneyFlowMultiplier * tick.volume;
                 result = result + moneyFlowVolume;
                 tick = yield Math.round(result);
@@ -1780,6 +1929,65 @@ function cci(input) {
     return result;
 }
 
+class AwesomeOscillator extends Indicator {
+    constructor(input) {
+        super(input);
+        var highs = input.high;
+        var lows = input.low;
+        var fastPeriod = input.fastPeriod;
+        var slowPeriod = input.slowPeriod;
+        var slowSMA = new SMA({ values: [], period: slowPeriod });
+        var fastSMA = new SMA({ values: [], period: fastPeriod });
+        this.result = [];
+        this.generator = (function* () {
+            var result;
+            var tick;
+            var medianPrice;
+            var slowSmaValue;
+            var fastSmaValue;
+            tick = yield;
+            while (true) {
+                medianPrice = (tick.high + tick.low) / 2;
+                slowSmaValue = slowSMA.nextValue(medianPrice);
+                fastSmaValue = fastSMA.nextValue(medianPrice);
+                if (slowSmaValue !== undefined && fastSmaValue !== undefined) {
+                    result = fastSmaValue - slowSmaValue;
+                }
+                tick = yield result;
+            }
+        })();
+        this.generator.next();
+        highs.forEach((tickHigh, index) => {
+            var tickInput = {
+                high: tickHigh,
+                low: lows[index],
+            };
+            var result = this.generator.next(tickInput);
+            if (result.value != undefined) {
+                this.result.push(this.format(result.value));
+            }
+        });
+    }
+    ;
+    nextValue(price) {
+        var result = this.generator.next(price);
+        if (result.value != undefined) {
+            return this.format(result.value);
+        }
+    }
+    ;
+}
+AwesomeOscillator.calculate = awesomeoscillator;
+function awesomeoscillator(input) {
+    Indicator.reverseInputs(input);
+    var result = new AwesomeOscillator(input).result;
+    if (input.reversedInput) {
+        result.reverse();
+    }
+    Indicator.reverseInputs(input);
+    return result;
+}
+
 class VWAP extends Indicator {
     constructor(input) {
         super(input);
@@ -1787,7 +1995,6 @@ class VWAP extends Indicator {
         var highs = input.high;
         var closes = input.close;
         var volumes = input.volume;
-        var period = input.period;
         var format = this.format;
         if (!((lows.length === highs.length) && (highs.length === closes.length))) {
             throw ('Inputs(low,high, close) not of equal size');
@@ -1797,7 +2004,6 @@ class VWAP extends Indicator {
             var tick = yield;
             let cumulativeTotal = 0;
             let cumulativeVolume = 0;
-            let vwap;
             while (true) {
                 let typicalPrice = (tick.high + tick.low + tick.close) / 3;
                 let total = tick.volume * typicalPrice;
@@ -1841,15 +2047,407 @@ function vwap(input) {
     return result;
 }
 
-class CandleList {
-    constructor() {
-        this.open = [];
-        this.high = [];
-        this.low = [];
-        this.close = [];
-        this.volume = [];
-        this.timestamp = [];
+function priceFallsBetweenBarRange(low, high, low1, high1) {
+    return (low <= low1 && high >= low1) || (low1 <= low && high1 >= low);
+}
+class VolumeProfile extends Indicator {
+    constructor(input) {
+        super(input);
+        var highs = input.high;
+        var lows = input.low;
+        var closes = input.close;
+        var opens = input.open;
+        var volumes = input.volume;
+        var bars = input.noOfBars;
+        if (!((lows.length === highs.length) && (highs.length === closes.length) && (highs.length === volumes.length))) {
+            throw ('Inputs(low,high, close, volumes) not of equal size');
+        }
+        this.result = [];
+        var max = Math.max(...highs, ...lows, ...closes, ...opens);
+        var min = Math.min(...highs, ...lows, ...closes, ...opens);
+        var barRange = (max - min) / bars;
+        var lastEnd = min;
+        for (let i = 0; i < bars; i++) {
+            let rangeStart = lastEnd;
+            let rangeEnd = rangeStart + barRange;
+            lastEnd = rangeEnd;
+            let bullishVolume = 0;
+            let bearishVolume = 0;
+            let totalVolume = 0;
+            for (let priceBar = 0; priceBar < highs.length; priceBar++) {
+                let priceBarStart = lows[priceBar];
+                let priceBarEnd = highs[priceBar];
+                let priceBarOpen = opens[priceBar];
+                let priceBarClose = closes[priceBar];
+                let priceBarVolume = volumes[priceBar];
+                if (priceFallsBetweenBarRange(rangeStart, rangeEnd, priceBarStart, priceBarEnd)) {
+                    totalVolume = totalVolume + priceBarVolume;
+                    if (priceBarOpen > priceBarClose) {
+                        bearishVolume = bearishVolume + priceBarVolume;
+                    }
+                    else {
+                        bullishVolume = bullishVolume + priceBarVolume;
+                    }
+                }
+            }
+            this.result.push({
+                rangeStart, rangeEnd, bullishVolume, bearishVolume, totalVolume
+            });
+        }
     }
+    ;
+    nextValue(price) {
+        throw ('Next value not supported for volume profile');
+    }
+    ;
+}
+VolumeProfile.calculate = volumeprofile;
+function volumeprofile(input) {
+    Indicator.reverseInputs(input);
+    var result = new VolumeProfile(input).result;
+    if (input.reversedInput) {
+        result.reverse();
+    }
+    Indicator.reverseInputs(input);
+    return result;
+}
+
+/**
+ * Created by AAravindan on 5/4/16.
+ */
+
+class TypicalPrice extends Indicator {
+    constructor(input) {
+        super(input);
+        this.result = [];
+        this.generator = (function* () {
+            let priceInput = yield;
+            while (true) {
+                priceInput = yield (priceInput.high + priceInput.low + priceInput.close) / 3;
+            }
+        })();
+        this.generator.next();
+        input.low.forEach((tick, index) => {
+            var result = this.generator.next({
+                high: input.high[index],
+                low: input.low[index],
+                close: input.close[index],
+            });
+            this.result.push(result.value);
+        });
+    }
+    nextValue(price) {
+        var result = this.generator.next(price).value;
+        return result;
+    }
+    ;
+}
+TypicalPrice.calculate = typicalprice;
+function typicalprice(input) {
+    Indicator.reverseInputs(input);
+    var result = new TypicalPrice(input).result;
+    if (input.reversedInput) {
+        result.reverse();
+    }
+    Indicator.reverseInputs(input);
+    return result;
+}
+
+/**
+ * Created by AAravindan on 5/17/16.
+ */
+
+class MFI extends Indicator {
+    constructor(input) {
+        super(input);
+        var highs = input.high;
+        var lows = input.low;
+        var closes = input.close;
+        var volumes = input.volume;
+        var period = input.period;
+        var typicalPrice = new TypicalPrice({ low: [], high: [], close: [] });
+        var positiveFlow = new FixedSizeLinkedList(period, false, false, true);
+        var negativeFlow = new FixedSizeLinkedList(period, false, false, true);
+        if (!((lows.length === highs.length) && (highs.length === closes.length) && (highs.length === volumes.length))) {
+            throw ('Inputs(low,high, close, volumes) not of equal size');
+        }
+        this.result = [];
+        this.generator = (function* () {
+            var result;
+            var tick;
+            var lastClose;
+            var positiveFlowForPeriod;
+            var rawMoneyFlow = 0;
+            var moneyFlowRatio;
+            var negativeFlowForPeriod;
+            let typicalPriceValue = null;
+            let prevousTypicalPrice = null;
+            tick = yield;
+            lastClose = tick.close; //Fist value 
+            tick = yield;
+            while (true) {
+                var { high, low, close, volume } = tick;
+                var positionMoney = 0;
+                var negativeMoney = 0;
+                typicalPriceValue = typicalPrice.nextValue({ high, low, close });
+                rawMoneyFlow = typicalPriceValue * volume;
+                if ((typicalPriceValue != null) && (prevousTypicalPrice != null)) {
+                    typicalPriceValue > prevousTypicalPrice ? positionMoney = rawMoneyFlow : negativeMoney = rawMoneyFlow;
+                    positiveFlow.push(positionMoney);
+                    negativeFlow.push(negativeMoney);
+                    positiveFlowForPeriod = positiveFlow.periodSum;
+                    negativeFlowForPeriod = negativeFlow.periodSum;
+                    if ((positiveFlow.totalPushed >= period) && (positiveFlow.totalPushed >= period)) {
+                        moneyFlowRatio = positiveFlowForPeriod / negativeFlowForPeriod;
+                        result = 100 - 100 / (1 + moneyFlowRatio);
+                    }
+                }
+                prevousTypicalPrice = typicalPriceValue;
+                tick = yield result;
+            }
+        })();
+        this.generator.next();
+        highs.forEach((tickHigh, index) => {
+            var tickInput = {
+                high: tickHigh,
+                low: lows[index],
+                close: closes[index],
+                volume: volumes[index]
+            };
+            var result = this.generator.next(tickInput);
+            if (result.value != undefined) {
+                this.result.push(parseFloat(result.value.toFixed(2)));
+            }
+        });
+    }
+    ;
+    nextValue(price) {
+        var result = this.generator.next(price);
+        if (result.value != undefined) {
+            return (parseFloat(result.value.toFixed(2)));
+        }
+    }
+    ;
+}
+MFI.calculate = mfi;
+function mfi(input) {
+    Indicator.reverseInputs(input);
+    var result = new MFI(input).result;
+    if (input.reversedInput) {
+        result.reverse();
+    }
+    Indicator.reverseInputs(input);
+    return result;
+}
+
+class StochasticRSI extends Indicator {
+    constructor(input) {
+        super(input);
+        let closes = input.values;
+        let rsiPeriod = input.rsiPeriod;
+        let stochasticPeriod = input.stochasticPeriod;
+        let kPeriod = input.kPeriod;
+        let dPeriod = input.dPeriod;
+        let format = this.format;
+        this.result = [];
+        this.generator = (function* () {
+            let index = 1;
+            let rsi$$1 = new RSI({ period: rsiPeriod, values: [] });
+            let stochastic$$1 = new Stochastic({ period: stochasticPeriod, high: [], low: [], close: [], signalPeriod: kPeriod });
+            let dSma = new SMA({
+                period: dPeriod,
+                values: [],
+                format: (v) => { return v; }
+            });
+            let lastRSI, stochasticRSI, d, result;
+            var tick = yield;
+            while (true) {
+                lastRSI = rsi$$1.nextValue(tick);
+                if (lastRSI !== undefined) {
+                    var stochasticInput = { high: lastRSI, low: lastRSI, close: lastRSI };
+                    stochasticRSI = stochastic$$1.nextValue(stochasticInput);
+                    if (stochasticRSI !== undefined && stochasticRSI.d !== undefined) {
+                        d = dSma.nextValue(stochasticRSI.d);
+                        if (d !== undefined)
+                            result = {
+                                stochRSI: stochasticRSI.k,
+                                k: stochasticRSI.d,
+                                d: d
+                            };
+                    }
+                }
+                tick = yield result;
+            }
+        })();
+        this.generator.next();
+        closes.forEach((tick, index) => {
+            var result = this.generator.next(tick);
+            if (result.value !== undefined) {
+                this.result.push(result.value);
+            }
+        });
+    }
+    ;
+    nextValue(input) {
+        let nextResult = this.generator.next(input);
+        if (nextResult.value !== undefined)
+            return nextResult.value;
+    }
+    ;
+}
+StochasticRSI.calculate = stochasticrsi;
+function stochasticrsi(input) {
+    Indicator.reverseInputs(input);
+    var result = new StochasticRSI(input).result;
+    if (input.reversedInput) {
+        result.reverse();
+    }
+    Indicator.reverseInputs(input);
+    return result;
+}
+
+class Highest extends Indicator {
+    constructor(input) {
+        super(input);
+        var values = input.values;
+        var period = input.period;
+        this.result = [];
+        var periodList = new FixedSizeLinkedList(period, true, false, false);
+        this.generator = (function* () {
+            var result;
+            var tick;
+            var high;
+            tick = yield;
+            while (true) {
+                periodList.push(tick);
+                if (periodList.totalPushed >= period) {
+                    high = periodList.periodHigh;
+                }
+                tick = yield high;
+            }
+        })();
+        this.generator.next();
+        values.forEach((value, index) => {
+            var result = this.generator.next(value);
+            if (result.value != undefined) {
+                this.result.push(result.value);
+            }
+        });
+    }
+    ;
+    nextValue(price) {
+        var result = this.generator.next(price);
+        if (result.value != undefined) {
+            return result.value;
+        }
+    }
+    ;
+}
+Highest.calculate = highest;
+function highest(input) {
+    Indicator.reverseInputs(input);
+    var result = new Highest(input).result;
+    if (input.reversedInput) {
+        result.reverse();
+    }
+    Indicator.reverseInputs(input);
+    return result;
+}
+
+class Lowest extends Indicator {
+    constructor(input) {
+        super(input);
+        var values = input.values;
+        var period = input.period;
+        this.result = [];
+        var periodList = new FixedSizeLinkedList(period, false, true, false);
+        this.generator = (function* () {
+            var result;
+            var tick;
+            var high;
+            tick = yield;
+            while (true) {
+                periodList.push(tick);
+                if (periodList.totalPushed >= period) {
+                    high = periodList.periodLow;
+                }
+                tick = yield high;
+            }
+        })();
+        this.generator.next();
+        values.forEach((value, index) => {
+            var result = this.generator.next(value);
+            if (result.value != undefined) {
+                this.result.push(result.value);
+            }
+        });
+    }
+    ;
+    nextValue(price) {
+        var result = this.generator.next(price);
+        if (result.value != undefined) {
+            return result.value;
+        }
+    }
+    ;
+}
+Lowest.calculate = lowest;
+function lowest(input) {
+    Indicator.reverseInputs(input);
+    var result = new Lowest(input).result;
+    if (input.reversedInput) {
+        result.reverse();
+    }
+    Indicator.reverseInputs(input);
+    return result;
+}
+
+class Sum extends Indicator {
+    constructor(input) {
+        super(input);
+        var values = input.values;
+        var period = input.period;
+        this.result = [];
+        var periodList = new FixedSizeLinkedList(period, false, false, true);
+        this.generator = (function* () {
+            var result;
+            var tick;
+            var high;
+            tick = yield;
+            while (true) {
+                periodList.push(tick);
+                if (periodList.totalPushed >= period) {
+                    high = periodList.periodSum;
+                }
+                tick = yield high;
+            }
+        })();
+        this.generator.next();
+        values.forEach((value, index) => {
+            var result = this.generator.next(value);
+            if (result.value != undefined) {
+                this.result.push(result.value);
+            }
+        });
+    }
+    ;
+    nextValue(price) {
+        var result = this.generator.next(price);
+        if (result.value != undefined) {
+            return result.value;
+        }
+    }
+    ;
+}
+Sum.calculate = sum;
+function sum(input) {
+    Indicator.reverseInputs(input);
+    var result = new Sum(input).result;
+    if (input.reversedInput) {
+        result.reverse();
+    }
+    Indicator.reverseInputs(input);
+    return result;
 }
 
 /**
@@ -2231,10 +2829,10 @@ class BullishHarami extends CandlestickFinder {
         let seconddaysClose = data.close[1];
         let seconddaysHigh = data.high[1];
         let seconddaysLow = data.low[1];
-        let isBullishHaramiPattern = ((firstdaysOpen < seconddaysOpen) &&
-            (firstdaysClose > seconddaysOpen) &&
-            (firstdaysClose > seconddaysClose) &&
-            (firstdaysOpen < seconddaysLow) &&
+        let isBullishHaramiPattern = ((firstdaysOpen > seconddaysOpen) &&
+            (firstdaysClose < seconddaysOpen) &&
+            (firstdaysClose < seconddaysClose) &&
+            (firstdaysOpen > seconddaysLow) &&
             (firstdaysHigh > seconddaysHigh));
         return (isBullishHaramiPattern);
     }
@@ -2258,10 +2856,10 @@ class BullishHaramiCross extends CandlestickFinder {
         let seconddaysClose = data.close[1];
         let seconddaysHigh = data.high[1];
         let seconddaysLow = data.low[1];
-        let isBullishHaramiCrossPattern = ((firstdaysOpen < seconddaysOpen) &&
-            (firstdaysClose > seconddaysOpen) &&
-            (firstdaysClose > seconddaysClose) &&
-            (firstdaysOpen < seconddaysLow) &&
+        let isBullishHaramiCrossPattern = ((firstdaysOpen > seconddaysOpen) &&
+            (firstdaysClose < seconddaysOpen) &&
+            (firstdaysClose < seconddaysClose) &&
+            (firstdaysOpen > seconddaysLow) &&
             (firstdaysHigh > seconddaysHigh));
         let isSecondDayDoji = this.approximateEqual(seconddaysOpen, seconddaysClose);
         return (isBullishHaramiCrossPattern && isSecondDayDoji);
@@ -2280,7 +2878,12 @@ class Doji extends CandlestickFinder {
     logic(data) {
         let daysOpen = data.open[0];
         let daysClose = data.close[0];
-        return this.approximateEqual(daysOpen, daysClose);
+        let daysHigh = data.high[0];
+        let daysLow = data.low[0];
+        let isOpenEqualsClose = this.approximateEqual(daysOpen, daysClose);
+        let isHighEqualsOpen = isOpenEqualsClose && this.approximateEqual(daysOpen, daysHigh);
+        let isLowEqualsClose = isOpenEqualsClose && this.approximateEqual(daysClose, daysLow);
+        return (isOpenEqualsClose && isHighEqualsOpen == isLowEqualsClose);
     }
 }
 function doji(data) {
@@ -2447,8 +3050,199 @@ function threewhitesoldiers(data) {
     return new ThreeWhiteSoldiers().hasPattern(data);
 }
 
-let bullishPatterns = [new BullishEngulfingPattern(), new DownsideTasukiGap(), new BullishHarami(), new BullishHaramiCross(),
-    new MorningDojiStar(), new MorningStar(), new BullishMarubozu(), new PiercingLine(), new ThreeWhiteSoldiers()];
+class BullishHammerStick extends CandlestickFinder {
+    constructor() {
+        super();
+        this.name = 'BullishHammerStick';
+        this.requiredCount = 1;
+    }
+    logic(data) {
+        let daysOpen = data.open[0];
+        let daysClose = data.close[0];
+        let daysHigh = data.high[0];
+        let daysLow = data.low[0];
+        let isBullishHammer = daysClose > daysOpen;
+        isBullishHammer = isBullishHammer && this.approximateEqual(daysClose, daysHigh);
+        isBullishHammer = isBullishHammer && (daysClose - daysOpen) <= 2 * (daysOpen - daysLow);
+        return isBullishHammer;
+    }
+}
+function bullishhammerstick(data) {
+    return new BullishHammerStick().hasPattern(data);
+}
+
+class BullishInvertedHammerStick extends CandlestickFinder {
+    constructor() {
+        super();
+        this.name = 'BullishInvertedHammerStick';
+        this.requiredCount = 1;
+    }
+    logic(data) {
+        let daysOpen = data.open[0];
+        let daysClose = data.close[0];
+        let daysHigh = data.high[0];
+        let daysLow = data.low[0];
+        let isBullishInvertedHammer = daysClose > daysOpen;
+        isBullishInvertedHammer = isBullishInvertedHammer && this.approximateEqual(daysOpen, daysLow);
+        isBullishInvertedHammer = isBullishInvertedHammer && (daysClose - daysOpen) <= 2 * (daysHigh - daysClose);
+        return isBullishInvertedHammer;
+    }
+}
+function bullishinvertedhammerstick(data) {
+    return new BullishInvertedHammerStick().hasPattern(data);
+}
+
+class BearishHammerStick extends CandlestickFinder {
+    constructor() {
+        super();
+        this.name = 'BearishHammerStick';
+        this.requiredCount = 1;
+    }
+    logic(data) {
+        let daysOpen = data.open[0];
+        let daysClose = data.close[0];
+        let daysHigh = data.high[0];
+        let daysLow = data.low[0];
+        let isBearishHammer = daysOpen > daysClose;
+        isBearishHammer = isBearishHammer && this.approximateEqual(daysOpen, daysHigh);
+        isBearishHammer = isBearishHammer && (daysOpen - daysClose) <= 2 * (daysClose - daysLow);
+        return isBearishHammer;
+    }
+}
+function bearishhammerstick(data) {
+    return new BearishHammerStick().hasPattern(data);
+}
+
+class BearishInvertedHammerStick extends CandlestickFinder {
+    constructor() {
+        super();
+        this.name = 'BearishInvertedHammerStick';
+        this.requiredCount = 1;
+    }
+    logic(data) {
+        let daysOpen = data.open[0];
+        let daysClose = data.close[0];
+        let daysHigh = data.high[0];
+        let daysLow = data.low[0];
+        let isBearishInvertedHammer = daysOpen > daysClose;
+        isBearishInvertedHammer = isBearishInvertedHammer && this.approximateEqual(daysClose, daysLow);
+        isBearishInvertedHammer = isBearishInvertedHammer && (daysOpen - daysClose) <= 2 * (daysHigh - daysOpen);
+        return isBearishInvertedHammer;
+    }
+}
+function bearishinvertedhammerstick(data) {
+    return new BearishInvertedHammerStick().hasPattern(data);
+}
+
+class HammerPattern extends CandlestickFinder {
+    constructor() {
+        super();
+        this.name = 'HammerPattern';
+        this.requiredCount = 5;
+    }
+    logic(data) {
+        let isPattern = this.downwardTrend(data);
+        isPattern = isPattern && this.includesHammer(data);
+        isPattern = isPattern && this.hasConfirmation(data);
+        return isPattern;
+    }
+    downwardTrend(data, confirm = true) {
+        let end = confirm ? 3 : 4;
+        // Analyze trends in closing prices of the first three or four candlesticks
+        let gains = averagegain({ values: data.close.slice(0, end), period: end - 1 });
+        let losses = averageloss({ values: data.close.slice(0, end), period: end - 1 });
+        // Downward trend, so more losses than gains
+        return losses > gains;
+    }
+    includesHammer(data, confirm = true) {
+        let start = confirm ? 3 : 4;
+        let end = confirm ? 4 : undefined;
+        let possibleHammerData = {
+            open: data.open.slice(start, end),
+            close: data.close.slice(start, end),
+            low: data.low.slice(start, end),
+            high: data.high.slice(start, end),
+        };
+        let isPattern = bearishhammerstick(possibleHammerData);
+        isPattern = isPattern || bearishinvertedhammerstick(possibleHammerData);
+        isPattern = isPattern || bullishhammerstick(possibleHammerData);
+        isPattern = isPattern || bullishinvertedhammerstick(possibleHammerData);
+        return isPattern;
+    }
+    hasConfirmation(data) {
+        let possibleHammer = {
+            open: data.open[3],
+            close: data.close[3],
+            low: data.low[3],
+            high: data.high[3],
+        };
+        let possibleConfirmation = {
+            open: data.open[4],
+            close: data.close[4],
+            low: data.low[4],
+            high: data.high[4],
+        };
+        // Confirmation candlestick is bullish
+        let isPattern = possibleConfirmation.open < possibleConfirmation.close;
+        return isPattern && possibleHammer.close < possibleConfirmation.close;
+    }
+}
+function hammerpattern(data) {
+    return new HammerPattern().hasPattern(data);
+}
+
+class HammerPatternUnconfirmed extends HammerPattern {
+    constructor() {
+        super();
+        this.name = 'HammerPatternUnconfirmed';
+    }
+    logic(data) {
+        let isPattern = this.downwardTrend(data, false);
+        isPattern = isPattern && this.includesHammer(data, false);
+        return isPattern;
+    }
+}
+function hammerpatternunconfirmed(data) {
+    return new HammerPatternUnconfirmed().hasPattern(data);
+}
+
+class TweezerBottom extends CandlestickFinder {
+    constructor() {
+        super();
+        this.name = 'TweezerBottom';
+        this.requiredCount = 5;
+    }
+    logic(data) {
+        return this.downwardTrend(data) && data.low[3] == data.low[4];
+    }
+    downwardTrend(data) {
+        // Analyze trends in closing prices of the first three or four candlesticks
+        let gains = averagegain({ values: data.close.slice(0, 3), period: 2 });
+        let losses = averageloss({ values: data.close.slice(0, 3), period: 2 });
+        // Downward trend, so more losses than gains
+        return losses > gains;
+    }
+}
+function tweezerbottom(data) {
+    return new TweezerBottom().hasPattern(data);
+}
+
+let bullishPatterns = [
+    new BullishEngulfingPattern(),
+    new DownsideTasukiGap(),
+    new BullishHarami(),
+    new BullishHaramiCross(),
+    new MorningDojiStar(),
+    new MorningStar(),
+    new BullishMarubozu(),
+    new PiercingLine(),
+    new ThreeWhiteSoldiers(),
+    new BullishHammerStick(),
+    new BullishInvertedHammerStick(),
+    new HammerPattern(),
+    new HammerPatternUnconfirmed(),
+    new TweezerBottom()
+];
 class BullishPatterns extends CandlestickFinder {
     constructor() {
         super();
@@ -2457,9 +3251,6 @@ class BullishPatterns extends CandlestickFinder {
     hasPattern(data) {
         return bullishPatterns.reduce(function (state, pattern) {
             let result = pattern.hasPattern(data);
-            if (result) {
-                console.log('Matched pattern ', pattern.name);
-            }
             return state || result;
         }, false);
     }
@@ -2509,10 +3300,10 @@ class BearishHarami extends CandlestickFinder {
         let seconddaysClose = data.close[1];
         let seconddaysHigh = data.high[1];
         let seconddaysLow = data.low[1];
-        let isBearishHaramiPattern = ((firstdaysOpen > seconddaysOpen) &&
-            (firstdaysClose < seconddaysOpen) &&
-            (firstdaysClose < seconddaysClose) &&
-            (firstdaysOpen > seconddaysLow) &&
+        let isBearishHaramiPattern = ((firstdaysOpen < seconddaysOpen) &&
+            (firstdaysClose > seconddaysOpen) &&
+            (firstdaysClose > seconddaysClose) &&
+            (firstdaysOpen < seconddaysLow) &&
             (firstdaysHigh > seconddaysHigh));
         return (isBearishHaramiPattern);
     }
@@ -2536,10 +3327,10 @@ class BearishHaramiCross extends CandlestickFinder {
         let seconddaysClose = data.close[1];
         let seconddaysHigh = data.high[1];
         let seconddaysLow = data.low[1];
-        let isBearishHaramiCrossPattern = ((firstdaysOpen > seconddaysOpen) &&
-            (firstdaysClose < seconddaysOpen) &&
-            (firstdaysClose < seconddaysClose) &&
-            (firstdaysOpen > seconddaysLow) &&
+        let isBearishHaramiCrossPattern = ((firstdaysOpen < seconddaysOpen) &&
+            (firstdaysClose > seconddaysOpen) &&
+            (firstdaysClose > seconddaysClose) &&
+            (firstdaysOpen < seconddaysLow) &&
             (firstdaysHigh > seconddaysHigh));
         let isSecondDayDoji = this.approximateEqual(seconddaysOpen, seconddaysClose);
         return (isBearishHaramiCrossPattern && isSecondDayDoji);
@@ -2682,8 +3473,183 @@ function threeblackcrows(data) {
     return new ThreeBlackCrows().hasPattern(data);
 }
 
-let bearishPatterns = [new BearishEngulfingPattern(), new BearishHarami(), new BearishHaramiCross(), new EveningDojiStar(),
-    new EveningStar(), new BearishMarubozu(), new ThreeBlackCrows()];
+class HangingMan extends CandlestickFinder {
+    constructor() {
+        super();
+        this.name = 'HangingMan';
+        this.requiredCount = 5;
+    }
+    logic(data) {
+        let isPattern = this.upwardTrend(data);
+        isPattern = isPattern && this.includesHammer(data);
+        isPattern = isPattern && this.hasConfirmation(data);
+        return isPattern;
+    }
+    upwardTrend(data, confirm = true) {
+        let end = confirm ? 3 : 4;
+        // Analyze trends in closing prices of the first three or four candlesticks
+        let gains = averagegain({ values: data.close.slice(0, end), period: end - 1 });
+        let losses = averageloss({ values: data.close.slice(0, end), period: end - 1 });
+        // Upward trend, so more gains than losses
+        return gains > losses;
+    }
+    includesHammer(data, confirm = true) {
+        let start = confirm ? 3 : 4;
+        let end = confirm ? 4 : undefined;
+        let possibleHammerData = {
+            open: data.open.slice(start, end),
+            close: data.close.slice(start, end),
+            low: data.low.slice(start, end),
+            high: data.high.slice(start, end),
+        };
+        let isPattern = bearishhammerstick(possibleHammerData);
+        isPattern = isPattern || bullishhammerstick(possibleHammerData);
+        return isPattern;
+    }
+    hasConfirmation(data) {
+        let possibleHammer = {
+            open: data.open[3],
+            close: data.close[3],
+            low: data.low[3],
+            high: data.high[3],
+        };
+        let possibleConfirmation = {
+            open: data.open[4],
+            close: data.close[4],
+            low: data.low[4],
+            high: data.high[4],
+        };
+        // Confirmation candlestick is bearish
+        let isPattern = possibleConfirmation.open > possibleConfirmation.close;
+        return isPattern && possibleHammer.close > possibleConfirmation.close;
+    }
+}
+function hangingman(data) {
+    return new HangingMan().hasPattern(data);
+}
+
+class HangingManUnconfirmed extends HangingMan {
+    constructor() {
+        super();
+        this.name = 'HangingManUnconfirmed';
+    }
+    logic(data) {
+        let isPattern = this.upwardTrend(data, false);
+        isPattern = isPattern && this.includesHammer(data, false);
+        return isPattern;
+    }
+}
+function hangingmanunconfirmed(data) {
+    return new HangingManUnconfirmed().hasPattern(data);
+}
+
+class ShootingStar extends CandlestickFinder {
+    constructor() {
+        super();
+        this.name = 'ShootingStar';
+        this.requiredCount = 5;
+    }
+    logic(data) {
+        let isPattern = this.upwardTrend(data);
+        isPattern = isPattern && this.includesHammer(data);
+        isPattern = isPattern && this.hasConfirmation(data);
+        return isPattern;
+    }
+    upwardTrend(data, confirm = true) {
+        let end = confirm ? 3 : 4;
+        // Analyze trends in closing prices of the first three or four candlesticks
+        let gains = averagegain({ values: data.close.slice(0, end), period: end - 1 });
+        let losses = averageloss({ values: data.close.slice(0, end), period: end - 1 });
+        // Upward trend, so more gains than losses
+        return gains > losses;
+    }
+    includesHammer(data, confirm = true) {
+        let start = confirm ? 3 : 4;
+        let end = confirm ? 4 : undefined;
+        let possibleHammerData = {
+            open: data.open.slice(start, end),
+            close: data.close.slice(start, end),
+            low: data.low.slice(start, end),
+            high: data.high.slice(start, end),
+        };
+        let isPattern = bearishinvertedhammerstick(possibleHammerData);
+        isPattern = isPattern || bullishinvertedhammerstick(possibleHammerData);
+        return isPattern;
+    }
+    hasConfirmation(data) {
+        let possibleHammer = {
+            open: data.open[3],
+            close: data.close[3],
+            low: data.low[3],
+            high: data.high[3],
+        };
+        let possibleConfirmation = {
+            open: data.open[4],
+            close: data.close[4],
+            low: data.low[4],
+            high: data.high[4],
+        };
+        // Confirmation candlestick is bearish
+        let isPattern = possibleConfirmation.open > possibleConfirmation.close;
+        return isPattern && possibleHammer.close > possibleConfirmation.close;
+    }
+}
+function shootingstar(data) {
+    return new ShootingStar().hasPattern(data);
+}
+
+class ShootingStarUnconfirmed extends ShootingStar {
+    constructor() {
+        super();
+        this.name = 'ShootingStarUnconfirmed';
+    }
+    logic(data) {
+        let isPattern = this.upwardTrend(data, false);
+        isPattern = isPattern && this.includesHammer(data, false);
+        return isPattern;
+    }
+}
+function shootingstarunconfirmed(data) {
+    return new ShootingStarUnconfirmed().hasPattern(data);
+}
+
+class TweezerTop extends CandlestickFinder {
+    constructor() {
+        super();
+        this.name = 'TweezerTop';
+        this.requiredCount = 5;
+    }
+    logic(data) {
+        return this.upwardTrend(data) && data.high[3] == data.high[4];
+    }
+    upwardTrend(data) {
+        // Analyze trends in closing prices of the first three or four candlesticks
+        let gains = averagegain({ values: data.close.slice(0, 3), period: 2 });
+        let losses = averageloss({ values: data.close.slice(0, 3), period: 2 });
+        // Upward trend, so more gains than losses
+        return gains > losses;
+    }
+}
+function tweezertop(data) {
+    return new TweezerTop().hasPattern(data);
+}
+
+let bearishPatterns = [
+    new BearishEngulfingPattern(),
+    new BearishHarami(),
+    new BearishHaramiCross(),
+    new EveningDojiStar(),
+    new EveningStar(),
+    new BearishMarubozu(),
+    new ThreeBlackCrows(),
+    new BearishHammerStick(),
+    new BearishInvertedHammerStick(),
+    new HangingMan(),
+    new HangingManUnconfirmed(),
+    new ShootingStar(),
+    new ShootingStarUnconfirmed(),
+    new TweezerTop()
+];
 class BearishPatterns extends CandlestickFinder {
     constructor() {
         super();
@@ -2774,9 +3740,11 @@ class DragonFlyDoji extends CandlestickFinder {
         let daysOpen = data.open[0];
         let daysClose = data.close[0];
         let daysHigh = data.high[0];
+        let daysLow = data.low[0];
         let isOpenEqualsClose = this.approximateEqual(daysOpen, daysClose);
-        let isHighEqualsOpen = this.approximateEqual(daysOpen, daysHigh);
-        return (isOpenEqualsClose && isHighEqualsOpen);
+        let isHighEqualsOpen = isOpenEqualsClose && this.approximateEqual(daysOpen, daysHigh);
+        let isLowEqualsClose = isOpenEqualsClose && this.approximateEqual(daysClose, daysLow);
+        return (isOpenEqualsClose && isHighEqualsOpen && !isLowEqualsClose);
     }
 }
 function dragonflydoji(data) {
@@ -2792,10 +3760,12 @@ class GraveStoneDoji extends CandlestickFinder {
     logic(data) {
         let daysOpen = data.open[0];
         let daysClose = data.close[0];
+        let daysHigh = data.high[0];
         let daysLow = data.low[0];
         let isOpenEqualsClose = this.approximateEqual(daysOpen, daysClose);
-        let isLowEqualsOpen = this.approximateEqual(daysOpen, daysLow);
-        return (isOpenEqualsClose && isLowEqualsOpen);
+        let isHighEqualsOpen = isOpenEqualsClose && this.approximateEqual(daysOpen, daysHigh);
+        let isLowEqualsClose = isOpenEqualsClose && this.approximateEqual(daysClose, daysLow);
+        return (isOpenEqualsClose && isLowEqualsClose && !isHighEqualsOpen);
     }
 }
 function gravestonedoji(data) {
@@ -2860,18 +3830,7 @@ function bearishspinningtop(data) {
  * @param {number} end
  * @returns {number[]}
  */
-/**
- * Calcaultes the fibonacci retracements for given start and end points
- *
- * If calculating for up trend start should be low and end should be high and vice versa
- *
- * returns an array of retracements level containing [0 , 23.6, 38.2, 50, 61.8, 78.6, 100, 127.2, 161.8, 261.8, 423.6]
- *
- * @export
- * @param {number} start
- * @param {number} end
- * @returns {number[]}
- */ function fibonacciretracement(start, end) {
+function fibonacciretracement(start, end) {
     let levels = [0, 23.6, 38.2, 50, 61.8, 78.6, 100, 127.2, 161.8, 261.8, 423.6];
     let retracements;
     if (start < end) {
@@ -2889,6 +3848,126 @@ function bearishspinningtop(data) {
     return retracements;
 }
 
+var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var isNodeEnvironment = false;
+try {
+    isNodeEnvironment = Object.prototype.toString.call(global.process) === '[object process]';
+}
+catch (e) { }
+var modelPath = getConfig('MODEL_PATH') || '/dist/model.bin';
+var model = new KerasJS.Model({
+    filepath: isNodeEnvironment ? __dirname + '/model.bin' : modelPath,
+    gpu: false,
+    filesystem: isNodeEnvironment
+});
+
+
+(function (AvailablePatterns) {
+    AvailablePatterns[AvailablePatterns["TD"] = 0] = "TD";
+    AvailablePatterns[AvailablePatterns["IHS"] = 1] = "IHS";
+    AvailablePatterns[AvailablePatterns["HS"] = 2] = "HS";
+    AvailablePatterns[AvailablePatterns["TU"] = 3] = "TU";
+    AvailablePatterns[AvailablePatterns["DT"] = 4] = "DT";
+    AvailablePatterns[AvailablePatterns["DB"] = 5] = "DB";
+})(exports.AvailablePatterns || (exports.AvailablePatterns = {}));
+function interpolateArray(data, fitCount) {
+    var linearInterpolate = function (before, after, atPoint) {
+        return before + (after - before) * atPoint;
+    };
+    var newData = new Array();
+    var springFactor = new Number((data.length - 1) / (fitCount - 1));
+    newData[0] = data[0]; // for new allocation
+    for (var i = 1; i < fitCount - 1; i++) {
+        var tmp = i * springFactor;
+        var before = new Number(Math.floor(tmp)).toFixed();
+        var after = new Number(Math.ceil(tmp)).toFixed();
+        var atPoint = tmp - before;
+        newData[i] = linearInterpolate(data[before], data[after], atPoint);
+    }
+    newData[fitCount - 1] = data[data.length - 1]; // for new allocation
+    return newData;
+}
+
+function l2Normalize(arr) {
+    var sum = arr.reduce((cum, value) => { return cum + (value * value); }, 0);
+    var norm = Math.sqrt(sum);
+    return arr.map((v) => v / norm);
+}
+
+function predictPattern(input) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (input.values.length < 200) {
+            console.warn('Pattern detector requires atleast 250 data for a reliable prediction, received just ', input.values.length);
+        }
+        yield model.ready();
+        Indicator.reverseInputs(input);
+        var data = input.values;
+        var closes = l2Normalize(interpolateArray(data, 400));
+        let result = yield model.predict({
+            input: new Float32Array(closes)
+        });
+        var index = result.output.indexOf(Math.max(...result.output));
+        Indicator.reverseInputs(input);
+        return {
+            pattern: exports.AvailablePatterns[index],
+            patternId: index,
+            probability: result.output[index] * 100
+        };
+    });
+}
+function hasDoubleBottom(input) {
+    return __awaiter(this, void 0, void 0, function* () {
+        var result = yield predictPattern(input);
+        return (result.patternId === exports.AvailablePatterns.DB && result.probability > 75);
+    });
+}
+function hasDoubleTop(input) {
+    return __awaiter(this, void 0, void 0, function* () {
+        var result = yield predictPattern(input);
+        return (result.patternId === exports.AvailablePatterns.DT && result.probability > 75);
+    });
+}
+function hasHeadAndShoulder(input) {
+    return __awaiter(this, void 0, void 0, function* () {
+        var result = yield predictPattern(input);
+        return (result.patternId === exports.AvailablePatterns.HS && result.probability > 75);
+    });
+}
+function hasInverseHeadAndShoulder(input) {
+    return __awaiter(this, void 0, void 0, function* () {
+        var result = yield predictPattern(input);
+        return (result.patternId === exports.AvailablePatterns.IHS && result.probability > 75);
+    });
+}
+function isTrendingUp(input) {
+    return __awaiter(this, void 0, void 0, function* () {
+        var result = yield predictPattern(input);
+        return (result.patternId === exports.AvailablePatterns.TU && result.probability > 75);
+    });
+}
+function isTrendingDown(input) {
+    return __awaiter(this, void 0, void 0, function* () {
+        var result = yield predictPattern(input);
+        return (result.patternId === exports.AvailablePatterns.TD && result.probability > 75);
+    });
+}
+class PatternDetector extends Indicator {
+}
+PatternDetector.predictPattern = predictPattern;
+PatternDetector.hasDoubleBottom = hasDoubleBottom;
+PatternDetector.hasDoubleTop = hasDoubleTop;
+PatternDetector.hasHeadAndShoulder = hasHeadAndShoulder;
+PatternDetector.hasInverseHeadAndShoulder = hasInverseHeadAndShoulder;
+PatternDetector.isTrendingUp = isTrendingUp;
+PatternDetector.isTrendingDown = isTrendingDown;
+
 function getAvailableIndicators () {
   let AvailableIndicators   = [];
   AvailableIndicators.push('sma');
@@ -2903,20 +3982,30 @@ function getAvailableIndicators () {
   AvailableIndicators.push('truerange');
   AvailableIndicators.push('roc');
   AvailableIndicators.push('kst');
+  AvailableIndicators.push('psar');
   AvailableIndicators.push('stochastic');
   AvailableIndicators.push('williamsr');
   AvailableIndicators.push('adl');
   AvailableIndicators.push('obv');
   AvailableIndicators.push('trix');
-  
+
   AvailableIndicators.push('cci');
+  AvailableIndicators.push('awesomeoscillator');
   AvailableIndicators.push('forceindex');
   AvailableIndicators.push('vwap');
+  AvailableIndicators.push('volumeprofile');
   AvailableIndicators.push('renko');
   AvailableIndicators.push('heikinashi');
 
+  AvailableIndicators.push('stochasticrsi');
+  AvailableIndicators.push('mfi');
+
   AvailableIndicators.push('averagegain');
   AvailableIndicators.push('averageloss');
+  AvailableIndicators.push('highest');
+  AvailableIndicators.push('lowest');
+  AvailableIndicators.push('sum');
+  AvailableIndicators.push('FixedSizeLinkedList');
   AvailableIndicators.push('sd');
   AvailableIndicators.push('bullish');
   AvailableIndicators.push('bearish');
@@ -2943,10 +4032,36 @@ function getAvailableIndicators () {
   AvailableIndicators.push('bearishspinningtop');
   AvailableIndicators.push('threeblackcrows');
   AvailableIndicators.push('threewhitesoldiers');
+  AvailableIndicators.push('bullishhammerstick');
+  AvailableIndicators.push('bearishhammerstick');
+  AvailableIndicators.push('bullishinvertedhammerstick');
+  AvailableIndicators.push('bearishinvertedhammerstick');
+  AvailableIndicators.push('hammerpattern');
+  AvailableIndicators.push('hammerpatternunconfirmed');
+  AvailableIndicators.push('hangingman');
+  AvailableIndicators.push('hangingmanunconfirmed');
+  AvailableIndicators.push('shootingstar');
+  AvailableIndicators.push('shootingstarunconfirmed');
+  AvailableIndicators.push('tweezertop');
+  AvailableIndicators.push('tweezerbottom');
+
+  AvailableIndicators.push('predictPattern');
+  AvailableIndicators.push('hasDoubleBottom');
+  AvailableIndicators.push('hasDoubleTop');
+  AvailableIndicators.push('hasHeadAndShoulder');
+  AvailableIndicators.push('hasInverseHeadAndShoulder');
+  AvailableIndicators.push('isTrendingUp');
+  AvailableIndicators.push('isTrendingDown');
   return AvailableIndicators;
 }
 
+let AvailableIndicators = getAvailableIndicators();
+
 exports.getAvailableIndicators = getAvailableIndicators;
+exports.AvailableIndicators = AvailableIndicators;
+exports.FixedSizeLinkedList = FixedSizeLinkedList;
+exports.CandleData = CandleData;
+exports.CandleList = CandleList;
 exports.sma = sma;
 exports.SMA = SMA;
 exports.ema = ema;
@@ -2971,6 +4086,8 @@ exports.roc = roc;
 exports.ROC = ROC;
 exports.kst = kst;
 exports.KST = KST;
+exports.psar = psar;
+exports.PSAR = PSAR;
 exports.stochastic = stochastic;
 exports.Stochastic = Stochastic;
 exports.williamsr = williamsr;
@@ -2985,14 +4102,28 @@ exports.forceindex = forceindex;
 exports.ForceIndex = ForceIndex;
 exports.cci = cci;
 exports.CCI = CCI;
+exports.awesomeoscillator = awesomeoscillator;
+exports.AwesomeOscillator = AwesomeOscillator;
 exports.vwap = vwap;
 exports.VWAP = VWAP;
+exports.volumeprofile = volumeprofile;
+exports.VolumeProfile = VolumeProfile;
+exports.mfi = mfi;
+exports.MFI = MFI;
+exports.stochasticrsi = stochasticrsi;
+exports.StochasticRSI = StochasticRSI;
 exports.averagegain = averagegain;
 exports.AverageGain = AverageGain;
 exports.averageloss = averageloss;
 exports.AverageLoss = AverageLoss;
 exports.sd = sd;
 exports.SD = SD;
+exports.highest = highest;
+exports.Highest = Highest;
+exports.lowest = lowest;
+exports.Lowest = Lowest;
+exports.sum = sum;
+exports.Sum = Sum;
 exports.renko = renko;
 exports.HeikinAshi = HeikinAshi;
 exports.heikinashi = heikinashi;
@@ -3021,7 +4152,27 @@ exports.bullishspinningtop = bullishspinningtop;
 exports.bearishspinningtop = bearishspinningtop;
 exports.threeblackcrows = threeblackcrows;
 exports.threewhitesoldiers = threewhitesoldiers;
+exports.bullishhammerstick = bullishhammerstick;
+exports.bearishhammerstick = bearishhammerstick;
+exports.bullishinvertedhammerstick = bullishinvertedhammerstick;
+exports.bearishinvertedhammerstick = bearishinvertedhammerstick;
+exports.hammerpattern = hammerpattern;
+exports.hammerpatternunconfirmed = hammerpatternunconfirmed;
+exports.hangingman = hangingman;
+exports.hangingmanunconfirmed = hangingmanunconfirmed;
+exports.shootingstar = shootingstar;
+exports.shootingstarunconfirmed = shootingstarunconfirmed;
+exports.tweezertop = tweezertop;
+exports.tweezerbottom = tweezerbottom;
 exports.fibonacciretracement = fibonacciretracement;
+exports.predictPattern = predictPattern;
+exports.PatternDetector = PatternDetector;
+exports.hasDoubleBottom = hasDoubleBottom;
+exports.hasDoubleTop = hasDoubleTop;
+exports.hasHeadAndShoulder = hasHeadAndShoulder;
+exports.hasInverseHeadAndShoulder = hasInverseHeadAndShoulder;
+exports.isTrendingUp = isTrendingUp;
+exports.isTrendingDown = isTrendingDown;
 exports.setConfig = setConfig;
 exports.getConfig = getConfig;
 //# sourceMappingURL=index.js.map
